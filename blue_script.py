@@ -16,7 +16,7 @@ def get_ip():
     return ip
 
 # setup firewall rules based on ip
-def firewall(ip, check=False):
+def firewall(ip, check="check"):
     allowed_ips = ["0.0.0.0", "0.0.0.0"] # change to ip of host and scoring/router
     box_ips = ["10.11.1.3", "192.168.11.1"]
 
@@ -35,7 +35,7 @@ def firewall(ip, check=False):
     final_commands = "iptables -A INPUT -j DROP; iptables -A OUTPUT -j DROP"
     run_command(final_commands)
 
-    if check == True:
+    if check == "check":
         time.sleep(5)
         print("Deleted firewall rules")
         flush_command = "iptables -F"
@@ -55,31 +55,49 @@ def freebsd_firewall(check=False):
         flush_command = "pfctl -F all"
         run_command(flush_command)
 
+def print_config():
+    config_files = [
+        "/etc/hosts",
+        "/etc/resolve.conf",
+        "/etc/crontab",
+        "/etc/bashrc",
+        "/etc/profile"]
+    
+    for file in config_files:
+        try:
+            print('_'*40,file,'_'*40, end='\n\n')
+            with open(file, 'r') as f:
+                for _ in f:
+                    print(f.read())
+                print()
+        except FileNotFoundError:
+            print(f'File {file} not found')
+        except Exception as e:
+            print(f'Error reading {file}: {str(e)}')
+
 # main
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--firewall", help="Run iptables firewall. Run with 'nocheck' and 'check' for initial check")
-    parser.add_argument("-b", "--bsd", help="Setup pf firewall with 'setup'. Run with 'nocheck' and 'check' for initial check")
+    parser.add_argument("-b", "--bsd", help="Run with 'nocheck' and 'check' for initial check")
+    parser.add_argument("-s", "--setup", action="store_true", help="Setup pf firewall")
+    parser.add_argument("-c", "--config", action="store_true", help="Print common config files")
+
     ip = get_ip().stdout.strip()
+
     try:
         args = parser.parse_args()
         if args.firewall:
-            if args.firewall.lower() == "check":
-                print("Checking iptables firewall rules...")
-                firewall(ip, check=True)
-            elif args.firewall.lower() == "nocheck":
-                print("Running iptables firewall rules...")
-                firewall(ip)
+            print("Running iptables firewall rules...")
+            firewall(ip, args.firewall)
         elif args.bsd:
-            if args.bsd.lower() == "setup":
-                print("Setting up pf firewall prelims...")
-                freebsd_setup()
-            elif args.bsd.lower() == "nocheck":
-                print("Running pf firewall...")
-                freebsd_firewall()
-            elif args.bsd.lower() == "check":
-                print("Checking pf firewall rules...")
-                freebsd_firewall(check=True)
+            print("Running pf firewall...")
+            freebsd_firewall(args.bsd)
+        elif args.setup:
+            print("Setting up pf firewall prelims...")
+            freebsd_setup()
+        elif args.config:
+            print_config()
     except:
         print("oops")
 
