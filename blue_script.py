@@ -47,10 +47,10 @@ def freebsd_setup():
     run_command(commands)
 
 # run pf
-def freebsd_firewall(check=False):
+def freebsd_firewall(check):
     command = "pfctl -e ; pfctl -f /etc/pf.conf"
     run_command(command)
-    if check == True:
+    if check == "check":
         time.sleep(5)
         flush_command = "pfctl -F all"
         run_command(flush_command)
